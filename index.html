@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Mood & Habit Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom Tailwind Configuration & Styles -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        mood: {
+                            great: '#10B981', // emerald
+                            good: '#0EA5E9',  // sky
+                            okay: '#F59E0B',  // amber
+                            low: '#8B5CF6',   // purple
+                            bad: '#EF4444'    // rose
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 50%, #f3e8ff 100%);
+            min-height: 100vh;
+        }
+        .dark body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #18181b 100%);
+        }
+        /* Custom scrollbar for calendar grid */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+        }
+        /* Glassmorphism styling helpers */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="text-slate-800 dark:text-slate-100 transition-colors duration-300 pb-12">
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10">
+
+        <!-- HEADER SECTION -->
+        <header class="glass-card rounded-3xl p-6 mb-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <p id="current-date" class="text-xs sm:text-sm font-semibold tracking-wide uppercase text-indigo-600 dark:text-indigo-400 mb-1">
+                    Loading date...
+                </p>
+                <h1 id="greeting" class="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+                    Welcome Back!
+                </h1>
+            </div>
+            
+            <div class="flex items-center gap-3 self-end sm:self-auto">
+                <!-- Dark Mode Toggle Button -->
+                <button id="theme-toggle" class="p-2.5 rounded-2xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-700 shadow-sm border border-slate-200 dark:border-slate-700 transition-all text-slate-600 dark:text-slate-300" title="Toggle Theme">
+                    <i data-lucide="moon" id="theme-icon-dark" class="w-5 h-5 hidden"></i>
+                    <i data-lucide="sun" id="theme-icon-light" class="w-5 h-5 hidden"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD STATS OVERVIEW -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Streak Card -->
+            <div class="glass-card rounded-3xl p-6 shadow-sm flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="p-4 rounded-2xl bg-amber-500/10 text-amber-500 dark:bg-amber-500/20">
+                        <i data-lucide="flame" class="w-8 h-8 stroke-[2.5]"></i>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Current Streak</span>
+                        <div class="flex items-baseline gap-2">
+                            <span id="streak-count" class="text-3xl font-extrabold text-slate-900 dark:text-white">0</span>
+                            <span class="text-sm font-semibold text-slate-600 dark:text-slate-300">Days</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-right text-slate-400 dark:text-slate-500 max-w-[120px]">
+                    Keep tracking daily to grow your streak!
+                </div>
+            </div>
+
+            <!-- Daily Progress Card -->
+            <div class="glass-card rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-slate-500 dark:text-slate-400">Today's Progress</span>
+                    <span id="progress-percent" class="text-sm font-bold text-indigo-600 dark:text-indigo-400">0%</span>
+                </div>
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-200 dark:bg-slate-700/60 rounded-full h-3 overflow-hidden mb-2">
+                    <div id="progress-bar" class="bg-indigo-600 dark:bg-indigo-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
+                    <span id="habits-completed-text">0 of 0 completed</span>
+                    <span id="progress-status-text">Let's get started!</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- MAIN CONTENT COLUMN (MOOD & HABITS) -->
+            <div class="lg:col-span-2 space-y-6">
+
+                <!-- MOOD TRACKER SECTION -->
+                <section class="glass-card rounded-3xl p-6 shadow-sm">
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="smile" class="w-5 h-5 text-indigo-500"></i> How are you feeling today?
+                    </h2>
+                    
+                    <div class="grid grid-cols-5 gap-2 sm:gap-3">
+                        <!-- Mood Option Buttons -->
+                        <button onclick="setMood('great')" id="mood-great" class="mood-btn flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-2 border-transparent transition-all group">
+                            <span class="text-3xl sm:text-4xl mb-1 transform group-hover:scale-110 transition-transform">😄</span>
+                            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:text-emerald-600">Great</span>
+                        </button>
+
+                        <button onclick="setMood('good')" id="mood-good" class="mood-btn flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-sky-50 dark:hover:bg-sky-950/30 border-2 border-transparent transition-all group">
+                            <span class="text-3xl sm:text-4xl mb-1 transform group-hover:scale-110 transition-transform">🙂</span>
+                            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:text-sky-600">Good</span>
+                        </button>
+
+                        <button onclick="setMood('okay')" id="mood-okay" class="mood-btn flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-amber-50 dark:hover:bg-amber-950/30 border-2 border-transparent transition-all group">
+                            <span class="text-3xl sm:text-4xl mb-1 transform group-hover:scale-110 transition-transform">😐</span>
+                            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:text-amber-600">Okay</span>
+                        </button>
+
+                        <button onclick="setMood('low')" id="mood-low" class="mood-btn flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-purple-50 dark:hover:bg-purple-950/30 border-2 border-transparent transition-all group">
+                            <span class="text-3xl sm:text-4xl mb-1 transform group-hover:scale-110 transition-transform">😔</span>
+                            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:text-purple-600">Low</span>
+                        </button>
+
+                        <button onclick="setMood('bad')" id="mood-bad" class="mood-btn flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-2 border-transparent transition-all group">
+                            <span class="text-3xl sm:text-4xl mb-1 transform group-hover:scale-110 transition-transform">😢</span>
+                            <span class="text-xs font-semibold text-slate-600 dark:text-slate-300 group-hover:text-rose-600">Bad</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- HABIT TRACKER SECTION -->
+                <section class="glass-card rounded-3xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-500"></i> Today's Habits
+                        </h2>
+                    </div>
+
+                    <!-- Add New Habit Form -->
+                    <form id="add-habit-form" onsubmit="handleAddHabit(event)" class="flex gap-2 mb-4">
+                        <input type="text" id="habit-input" placeholder="Add a new habit (e.g. Read 20 mins 📚)..." class="flex-1 bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white placeholder-slate-400 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" required>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2.5 rounded-2xl text-sm flex items-center gap-1 transition-colors shadow-sm">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Add
+                        </button>
+                    </form>
+
+                    <!-- Habit List Container -->
+                    <div id="habit-list" class="space-y-2.5">
+                        <!-- Dynamic items generated by JS -->
+                    </div>
+                </section>
+
+                <!-- DAILY REFLECTION NOTE -->
+                <section class="glass-card rounded-3xl p-6 shadow-sm">
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="book-open" class="w-5 h-5 text-indigo-500"></i> Today's Reflection
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Briefly jot down thoughts, wins, or reflections for today.</p>
+                    <textarea id="daily-note" oninput="saveNote()" rows="3" placeholder="What's on your mind today?..." class="w-full bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white placeholder-slate-400 rounded-2xl p-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"></textarea>
+                    <div id="note-saved-indicator" class="text-right text-[10px] text-emerald-500 dark:text-emerald-400 font-medium h-4 mt-1 opacity-0 transition-opacity">
+                        Saved automatically ✓
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- SIDEBAR COLUMN (CALENDAR HISTORY) -->
+            <div class="space-y-6">
+
+                <!-- CALENDAR HISTORY GRID -->
+                <section class="glass-card rounded-3xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-5 h-5 text-indigo-500"></i> History Log
+                        </h2>
+                        <span id="calendar-month" class="text-xs font-semibold text-slate-500 dark:text-slate-400">Month</span>
+                    </div>
+
+                    <!-- Days of Week Header -->
+                    <div class="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold text-slate-400 mb-2">
+                        <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+                    </div>
+
+                    <!-- Calendar Days Grid -->
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1.5">
+                        <!-- Dynamic days generated by JS -->
+                    </div>
+
+                    <!-- Mood Legend -->
+                    <div class="mt-6 pt-4 border-t border-slate-200/60 dark:border-slate-700/60">
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Mood Legend</p>
+                        <div class="flex flex-wrap gap-2 text-[11px] text-slate-600 dark:text-slate-300">
+                            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Great</span>
+                            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Good</span>
+                            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Okay</span>
+                            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> Low</span>
+                            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Bad</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- QUICK STATS / TIP CARD -->
+                <section class="glass-card rounded-3xl p-6 shadow-sm bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-200/50 dark:border-indigo-800/30">
+                    <div class="flex items-start gap-3">
+                        <div class="p-2.5 bg-indigo-500 text-white rounded-2xl shadow-sm">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white mb-1">Daily Motivation</h3>
+                            <p id="quote-text" class="text-xs text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                                "Small daily improvements over time lead to stunning results."
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // --- CONSTANTS & STATE ---
+        const DEFAULT_HABITS = [
+            { id: '1', title: 'Drink 8 glasses of water 💧' },
+            { id: '2', title: 'Read for 15 minutes 📚' },
+            { id: '3', title: '30 min Workout / Walk 🏃' },
+            { id: '4', title: 'Meditate 🧘' }
+        ];
+
+        const MOOD_CONFIG = {
+            great: { emoji: '😄', color: '#10B981', border: 'border-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+            good:  { emoji: '🙂', color: '#0EA5E9', border: 'border-sky-500',     bg: 'bg-sky-50 dark:bg-sky-950/40' },
+            okay:  { emoji: '😐', color: '#F59E0B', border: 'border-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/40' },
+            low:   { emoji: '😔', color: '#8B5CF6', border: 'border-purple-500',  bg: 'bg-purple-50 dark:bg-purple-950/40' },
+            bad:   { emoji: '😢', color: '#EF4444', border: 'border-rose-500',    bg: 'bg-rose-50 dark:bg-rose-950/40' }
+        };
+
+        const MOTIVATIONAL_QUOTES = [
+            "\"Small daily improvements over time lead to stunning results.\"",
+            "\"You don't have to be great to start, but you have to start to be great.\"",
+            "\"Consistency is what transforms average into excellence.\"",
+            "\"Focus on progress, not perfection.\"",
+            "\"Your future is created by what you do today, not tomorrow.\""
+        ];
+
+        // Application State loaded from LocalStorage
+        let appState = {
+            habits: [],
+            dailyData: {}, // Format: { "YYYY-MM-DD": { mood: 'great', habits: { '1': true, '2': false }, note: "text" } }
+            theme: 'light'
+        };
+
+        // --- HELPER FUNCTIONS ---
+        function getTodayKey() {
+            const today = new Date();
+            return formatDateKey(today);
+        }
+
+        function formatDateKey(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // Save State to LocalStorage
+        function saveState() {
+            localStorage.setItem('dailyTrackerState', JSON.stringify(appState));
+        }
+
+        // Load State from LocalStorage
+        function loadState() {
+            const saved = localStorage.getItem('dailyTrackerState');
+            if (saved) {
+                try {
+                    appState = JSON.parse(saved);
+                } catch (e) {
+                    console.error("Error parsing saved state", e);
+                }
+            }
+            
+            // Initialize defaults if habits list is empty
+            if (!appState.habits || appState.habits.length === 0) {
+                appState.habits = [...DEFAULT_HABITS];
+            }
+
+            // Ensure today's entry object structure exists
+            const todayKey = getTodayKey();
+            if (!appState.dailyData[todayKey]) {
+                appState.dailyData[todayKey] = { mood: null, habits: {}, note: '' };
+            }
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            loadState();
+            initTheme();
+            renderHeader();
+            renderMood();
+            renderHabits();
+            renderProgress();
+            renderStreak();
+            renderCalendar();
+            loadNote();
+
+            // Set random quote
+            const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+            document.getElementById('quote-text').innerText = randomQuote;
+
+            // Initialize Lucide Icons
+            lucide.createIcons();
+        };
+
+        // --- THEME MANAGEMENT ---
+        function initTheme() {
+            if (appState.theme === 'dark' || (!('theme' in appState) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                appState.theme = 'dark';
+                document.getElementById('theme-icon-light').classList.remove('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                appState.theme = 'light';
+                document.getElementById('theme-icon-dark').classList.remove('hidden');
+            }
+
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                appState.theme = isDark ? 'dark' : 'light';
+                
+                document.getElementById('theme-icon-light').classList.toggle('hidden', !isDark);
+                document.getElementById('theme-icon-dark').classList.toggle('hidden', isDark);
+                
+                saveState();
+            });
+        }
+
+        // --- HEADER & DATE ---
+        function renderHeader() {
+            const now = new Date();
+            const options = { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' };
+            document.getElementById('current-date').innerText = now.toLocaleDateString('en-US', options);
+
+            const hour = now.getHours();
+            let greeting = "Good Evening";
+            if (hour < 12) greeting = "Good Morning";
+            else if (hour < 18) greeting = "Good Afternoon";
+
+            document.getElementById('greeting').innerText = `${greeting}! 👋`;
+        }
+
+        // --- MOOD TRACKER LOGIC ---
+        function setMood(moodKey) {
+            const todayKey = getTodayKey();
+            if (!appState.dailyData[todayKey]) {
+                appState.dailyData[todayKey] = { mood: null, habits: {}, note: '' };
+            }
+
+            // Toggle off if clicking the already active mood
+            if (appState.dailyData[todayKey].mood === moodKey) {
+                appState.dailyData[todayKey].mood = null;
+            } else {
+                appState.dailyData[todayKey].mood = moodKey;
+            }
+
+            saveState();
+            renderMood();
+            renderCalendar();
+            renderStreak();
+        }
+
+        function renderMood() {
+            const todayKey = getTodayKey();
+            const currentMood = appState.dailyData[todayKey]?.mood;
+
+            // Reset all mood buttons
+            Object.keys(MOOD_CONFIG).forEach(key => {
+                const btn = document.getElementById(`mood-${key}`);
+                if (btn) {
+                    btn.className = `mood-btn flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-white/50 dark:bg-slate-800/50 border-2 border-transparent transition-all group hover:${MOOD_CONFIG[key].bg}`;
+                }
+            });
+
+            // Highlight active mood button
+            if (currentMood && MOOD_CONFIG[currentMood]) {
+                const activeBtn = document.getElementById(`mood-${currentMood}`);
+                if (activeBtn) {
+                    const cfg = MOOD_CONFIG[currentMood];
+                    activeBtn.className = `mood-btn flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl ${cfg.bg} ${cfg.border} shadow-sm transition-all scale-105`;
+                }
+            }
+        }
+
+        // --- HABIT TRACKER LOGIC ---
+        function handleAddHabit(e) {
+            e.preventDefault();
+            const input = document.getElementById('habit-input');
+            const title = input.value.trim();
+
+            if (title) {
+                const newHabit = {
+                    id: Date.now().toString(),
+                    title: title
+                };
+                appState.habits.push(newHabit);
+                input.value = '';
+                saveState();
+                renderHabits();
+                renderProgress();
+            }
+        }
+
+        function deleteHabit(habitId) {
+            appState.habits = appState.habits.filter(h => h.id !== habitId);
+            
+            // Clean up state references if any
+            const todayKey = getTodayKey();
+            if (appState.dailyData[todayKey]?.habits) {
+                delete appState.dailyData[todayKey].habits[habitId];
+            }
+
+            saveState();
+            renderHabits();
+            renderProgress();
+            renderStreak();
+        }
+
+        function toggleHabit(habitId) {
+            const todayKey = getTodayKey();
+            if (!appState.dailyData[todayKey]) {
+                appState.dailyData[todayKey] = { mood: null, habits: {}, note: '' };
+            }
+            if (!appState.dailyData[todayKey].habits) {
+                appState.dailyData[todayKey].habits = {};
+            }
+
+            const currentStatus = !!appState.dailyData[todayKey].habits[habitId];
+            appState.dailyData[todayKey].habits[habitId] = !currentStatus;
+
+            saveState();
+            renderHabits();
+            renderProgress();
+            renderStreak();
+        }
+
+        function renderHabits() {
+            const container = document.getElementById('habit-list');
+            container.innerHTML = '';
+
+            const todayKey = getTodayKey();
+            const todayHabitData = appState.dailyData[todayKey]?.habits || {};
+
+            if (appState.habits.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 dark:text-slate-500 text-sm">
+                        No habits added yet. Type above to create one!
+                    </div>
+                `;
+                return;
+            }
+
+            appState.habits.forEach(habit => {
+                const isCompleted = !!todayHabitData[habit.id];
+
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200 ${
+                    isCompleted 
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-slate-800 dark:text-slate-100' 
+                        : 'bg-white/60 dark:bg-slate-800/60 border-slate-200/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800'
+                }`;
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-3 flex-1 cursor-pointer select-none" onclick="toggleHabit('${habit.id}')">
+                        <div class="w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-colors ${
+                            isCompleted 
+                                ? 'bg-emerald-500 border-emerald-500 text-white' 
+                                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'
+                        }">
+                            ${isCompleted ? '<i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>' : ''}
+                        </div>
+                        <span class="text-sm font-medium ${isCompleted ? 'line-through text-slate-400 dark:text-slate-500' : ''}">
+                            ${escapeHtml(habit.title)}
+                        </span>
+                    </div>
+                    <button onclick="deleteHabit('${habit.id}')" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors" title="Delete Habit">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                `;
+
+                container.appendChild(item);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Safe HTML escaping for user inputs
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // --- PROGRESS BAR LOGIC ---
+        function renderProgress() {
+            const todayKey = getTodayKey();
+            const todayHabits = appState.dailyData[todayKey]?.habits || {};
+            const totalHabits = appState.habits.length;
+
+            if (totalHabits === 0) {
+                document.getElementById('progress-bar').style.width = '0%';
+                document.getElementById('progress-percent').innerText = '0%';
+                document.getElementById('habits-completed-text').innerText = '0 habits';
+                document.getElementById('progress-status-text').innerText = 'Add habits to begin!';
+                return;
+            }
+
+            let completedCount = 0;
+            appState.habits.forEach(h => {
+                if (todayHabits[h.id]) completedCount++;
+            });
+
+            const percent = Math.round((completedCount / totalHabits) * 100);
+
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-percent').innerText = `${percent}%`;
+            document.getElementById('habits-completed-text').innerText = `${completedCount} of ${totalHabits} completed`;
+
+            let statusText = "Let's get started!";
+            if (percent === 100) statusText = "All done! Great job! 🎉";
+            else if (percent >= 50) statusText = "Halfway there! Keep going! 💪";
+            else if (percent > 0) statusText = "Good progress!";
+
+            document.getElementById('progress-status-text').innerText = statusText;
+        }
+
+        // --- STREAK CALCULATOR ---
+        function renderStreak() {
+            let streak = 0;
+            let checkDate = new Date();
+
+            // Check if today has activity (either a mood or at least one completed habit)
+            const todayKey = formatDateKey(checkDate);
+            const todayData = appState.dailyData[todayKey];
+            const hasTodayActivity = todayData && (todayData.mood || Object.values(todayData.habits || {}).some(v => v));
+
+            // If today has no activity yet, start checking from yesterday for streak continuity
+            if (!hasTodayActivity) {
+                checkDate.setDate(checkDate.getDate() - 1);
+            }
+
+            while (true) {
+                const key = formatDateKey(checkDate);
+                const data = appState.dailyData[key];
+
+                const hasMood = data && data.mood;
+                const hasCompletedHabit = data && data.habits && Object.values(data.habits).some(v => v === true);
+
+                if (hasMood || hasCompletedHabit) {
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+
+            document.getElementById('streak-count').innerText = streak;
+        }
+
+        // --- DAILY NOTE LOGIC ---
+        let saveTimeout;
+        function saveNote() {
+            const todayKey = getTodayKey();
+            const noteText = document.getElementById('daily-note').value;
+
+            if (!appState.dailyData[todayKey]) {
+                appState.dailyData[todayKey] = { mood: null, habits: {}, note: '' };
+            }
+
+            appState.dailyData[todayKey].note = noteText;
+            saveState();
+
+            // Show temporary saved indicator
+            const indicator = document.getElementById('note-saved-indicator');
+            indicator.style.opacity = '1';
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                indicator.style.opacity = '0';
+            }, 1500);
+        }
+
+        function loadNote() {
+            const todayKey = getTodayKey();
+            const noteText = appState.dailyData[todayKey]?.note || '';
+            document.getElementById('daily-note').value = noteText;
+        }
+
+        // --- CALENDAR HISTORY GRID ---
+        function renderCalendar() {
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth();
+
+            // Set Month Title
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('calendar-month').innerText = `${monthNames[currentMonth]} ${currentYear}`;
+
+            // First day of current month & total days
+            const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+            const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            // Blank placeholder days before 1st of the month
+            for (let i = 0; i < firstDayIndex; i++) {
+                const blank = document.createElement('div');
+                blank.className = 'h-8 sm:h-9 rounded-lg bg-transparent';
+                calendarGrid.appendChild(blank);
+            }
+
+            const todayKey = getTodayKey();
+
+            // Days of the month
+            for (let day = 1; day <= totalDays; day++) {
+                const dateObj = new Date(currentYear, currentMonth, day);
+                const dateKey = formatDateKey(dateObj);
+                const dayData = appState.dailyData[dateKey];
+                const mood = dayData?.mood;
+
+                const dayEl = document.createElement('div');
+                const isToday = (dateKey === todayKey);
+
+                let bgStyle = 'bg-white/40 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400';
+                let indicatorEmoji = '';
+
+                if (mood && MOOD_CONFIG[mood]) {
+                    const color = MOOD_CONFIG[mood].color;
+                    bgStyle = `text-white font-bold`;
+                    dayEl.style.backgroundColor = color;
+                    indicatorEmoji = MOOD_CONFIG[mood].emoji;
+                }
+
+                dayEl.className = `h-8 sm:h-9 rounded-xl flex flex-col items-center justify-center text-xs relative transition-transform hover:scale-105 cursor-default ${bgStyle} ${
+                    isToday ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900 font-extrabold' : ''
+                }`;
+
+                dayEl.innerHTML = `
+                    <span>${day}</span>
+                    ${indicatorEmoji ? `<span class="text-[9px] leading-none absolute -bottom-0.5">${indicatorEmoji}</span>` : ''}
+                `;
+
+                // Tooltip title
+                let tooltip = `${monthNames[currentMonth]} ${day}`;
+                if (mood) tooltip += ` - Mood: ${mood.toUpperCase()}`;
+                dayEl.title = tooltip;
+
+                calendarGrid.appendChild(dayEl);
+            }
+        }
+    </script>
+</body>
+</html>
